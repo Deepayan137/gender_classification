@@ -1,22 +1,37 @@
 import cv2
 import numpy as np 
 from glob import glob
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from time import time
 import sys
+from sklearn.feature_extraction.image import extract_patches_2d
 from math import floor
 from matplotlib import pyplot as plt
 
 class FeatureGetter:
-    def __init__(self):
-        self.sift_obj = cv2.xfeatures2d.SIFT_create()
+    def __init__(self, type):
+        if type=='sift':
+            self.feat_obj = cv2.xfeatures2d.SIFT_create()
 
+    def get_features(self,image):
+        if type=='sift':
+            kp,desc = self.features_sift(image)
+        else:
+            desc = self.features_patches(image)
+
+        return desc
 
     def features_sift(self, image):
-        keypoints, descriptors = self.sift_obj.detectAndCompute(image.astype('uint8'), None)
+        keypoints, descriptors = self.feat_obj.detectAndCompute(image.astype('uint8'), None)
         return [keypoints, descriptors]
+
+    def features_patches(self, image):
+        sz = 8
+        patches = extract_patches_2d(image,(sz,sz))
+        patches = patches.reshape(-1,sz**2)
+        return patches
 
 
 class BOWHelpers:
@@ -26,7 +41,7 @@ class BOWHelpers:
         self.kmeans_ret = None
         self.descriptor_all = None
         self.vocab_hist_train = None
-        self.scaler = None
+        self.vocab_scaler = None
         self.clf = SVC()   
 
 
@@ -41,8 +56,11 @@ class BOWHelpers:
         self.descriptor_all = desc_all.copy()
         print("final_desc_shape:",self.descriptor_all.shape)
         
-        self.vocab_size = int(self.descriptor_all.shape[0]/10)
-        self.kmeans_obj = KMeans(n_clusters=self.vocab_size)
+        self.vocab_size = int(self.descriptor_all.shape[0]/100)
+        # self.kmeans_obj = KMeans(n_clusters=self.vocab_size)
+        self.kmeans_obj = MiniBatchKMeans(n_clusters=self.vocab_size, 
+            batch_size=int(self.vocab_size/10), 
+            init_size=int(self.vocab_size/5))
 
         return self.vocab_size    
 
@@ -78,9 +96,9 @@ class BOWHelpers:
 
     def normalizeVocabulary(self, std=None):
         # print("before standardize:",[row[0] for row in self.vocab_hist_train])
-        self.scaler = StandardScaler().fit(self.vocab_hist_train)
-        # print("mean:",self.scaler.mean_[0],"var:",self.scaler.var_[0])
-        self.vocab_hist_train = self.scaler.transform(self.vocab_hist_train)
+        self.vocab_scaler = StandardScaler().fit(self.vocab_hist_train)
+        # print("mean:",self.vocab_scaler.mean_[0],"var:",self.vocab_scaler.var_[0])
+        self.vocab_hist_train = self.vocab_scaler.transform(self.vocab_hist_train)
         # print("after standardize:",[row[0] for row in self.vocab_hist_train])
         # self.plotHist()
 
