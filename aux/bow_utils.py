@@ -60,7 +60,7 @@ class BOWHelpers:
         # self.kmeans_obj = KMeans(n_clusters=self.vocab_size)
         self.kmeans_obj = MiniBatchKMeans(n_clusters=self.vocab_size, 
             batch_size=int(self.vocab_size/10), 
-            init_size=int(self.vocab_size/5))
+            init_size=int(1.1*self.vocab_size))
 
         return self.vocab_size    
 
