@@ -34,6 +34,7 @@ class BOW:
         self.feature_type = None
         self.descriptor_list = []
         self.bow_helper = None
+        self.vocab_size = None
         self.trainImageCount = 0
         self.name_dict = {}
 
@@ -60,7 +61,7 @@ class BOW:
         print("\n")
 
         self.bow_helper = BOWHelpers()
-        self.bow_helper.format_descriptors(self.descriptor_list)
+        self.bow_helper.format_descriptors(self.descriptor_list, vocab_sz=self.vocab_size)
         # print("image_shape:",image.shape,"descriptors count: ",len(self.descriptor_list))
         
         self.bow_helper.cluster_descriptors()
@@ -112,8 +113,13 @@ class BOW:
         precision = precision_score(y_val, y_pred, average='weighted')
         recall = recall_score(y_val, y_pred, average='weighted')
         f1 = f1_score(y_val, y_pred, average='macro')
-        print("accuracy:",accuracy,"precision:",precision,"recall:",recall,"f1:",f1)
+        print("vocab_size:",self.vocab_size,"accuracy:",accuracy,
+            "precision:",precision,"recall:",recall,"f1:",f1)
 
+        sv_metrics = open('bow_results.txt','a')
+        sv_metrics.write("vocab_size:" + str(self.vocab_size) + "\taccuracy:" + str(accuracy) +
+            "\tprecision:" + str(precision) + "\trecall:" + str(recall) + "\tf1:" + str(f1)+"\n")
+        sv_metrics.close()
         # for each_pred in predictions:
         #     cv2.imshow(each_pred['y_pred'], each_pred['image'])
         #     cv2.waitKey()
@@ -131,7 +137,7 @@ if __name__ == '__main__':
     
     X_train, X_val, y_train, y_val = train_test_split(norm, truths, test_size=0.20, random_state=42)
     
-    print("Fitting the classifier to the training set")
+    # print("Fitting the classifier to the training set")
 
     bow = BOW()
     bow.feature_type = 'patches'
@@ -141,8 +147,11 @@ if __name__ == '__main__':
 
     bow.X_val = X_val
     bow.y_val = y_val
- 
-    # train the model
-    bow.trainModel()
-    # test model
-    bow.testModel()
+    
+    # total_desc = (691920, 64)
+    for i in range(1000, 70000, 1000):
+        bow.vocab_size = i
+        # train the model
+        bow.trainModel()
+        # test model
+        bow.testModel()

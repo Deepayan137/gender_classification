@@ -45,7 +45,7 @@ class BOWHelpers:
         self.clf = SVC()   
 
 
-    def format_descriptors(self, desc_init):
+    def format_descriptors(self, desc_init, vocab_sz=None):
         # desc_all = np.array([]).reshape(0,128)
         # print(desc_init[0].shape[1])
         desc_all = np.array([]).reshape(0,desc_init[0].shape[1])
@@ -54,9 +54,12 @@ class BOWHelpers:
             desc_all = np.concatenate((desc_all, desc), axis=0)
         
         self.descriptor_all = desc_all.copy()
-        print("final_desc_shape:",self.descriptor_all.shape)
+        # print("final_desc_shape:",self.descriptor_all.shape)
         
-        self.vocab_size = int(self.descriptor_all.shape[0]/100)
+        if vocab_sz is None:
+            self.vocab_size = int(self.descriptor_all.shape[0]/100)
+        else:
+            self.vocab_size = vocab_sz
         # self.kmeans_obj = KMeans(n_clusters=self.vocab_size)
         self.kmeans_obj = MiniBatchKMeans(n_clusters=self.vocab_size, 
             batch_size=int(self.vocab_size/10), 
@@ -66,16 +69,16 @@ class BOWHelpers:
 
 
     def cluster_descriptors(self):
-        print("Clustering Descriptors...")
-        print("vocab_size:",self.vocab_size)
+        # print("Clustering Descriptors...")
+        # print("vocab_size:",self.vocab_size)
         self.kmeans_ret = self.kmeans_obj.fit_predict(self.descriptor_all)
         # print(self.kmeans_ret)
-        print("Done clustering")
+        # print("Done clustering")
 
 
     def generateVocabulary(self,images_count, descriptor_list):
         
-        print("Generating Vocabulary Histogram...")
+        # print("Generating Vocabulary Histogram...")
         
         self.vocab_hist_train = np.array([np.zeros(self.vocab_size) for i in range(images_count)])
         desc_count_total = 0
@@ -90,7 +93,7 @@ class BOWHelpers:
                 self.vocab_hist_train[i][word] += 1                           #incrementing the hist entry related to word
             desc_count_total += desc_count_image
 
-        print ("\nDone Generating Vocabulary Histogram")
+        # print ("\nDone Generating Vocabulary Histogram")
 
 
 
@@ -104,11 +107,11 @@ class BOWHelpers:
 
 
     def train(self, y_train):
-        print ("Training SVM")
-        print (self.clf)
+        # print ("Training SVM")
+        # print (self.clf)
         # print ("Train labels", y_train)
         self.clf.fit(self.vocab_hist_train, y_train)
-        print ("Training completed")
+        # print ("Training completed")
 
 
     def predict(self, vocab_hist):
