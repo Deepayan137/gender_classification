@@ -85,8 +85,8 @@ class BOWHelpers:
 
         for i in range(images_count):
             desc_count_image = len(descriptor_list[i])                  #no. of desc for i-th image
-            sys.stdout.write("\r- Building histograms: %d%%" %(floor((i+1)/images_count *100)))
-            sys.stdout.flush()
+            # sys.stdout.write("\r- Building histograms: %d%%" %(floor((i+1)/images_count *100)))
+            # sys.stdout.flush()
             # print(desc_count)
             for desc_id in range(desc_count_image):
                 word = self.kmeans_ret[desc_count_total + desc_id]      #word for a desc of i-th image

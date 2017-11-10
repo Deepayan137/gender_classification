@@ -48,8 +48,8 @@ class BOW:
 
         for image in self.X_train:
             count = floor((image_count+1)/self.trainImageCount *100)
-            sys.stdout.write("\r- Obtaining descriptors: %d%%" % count)
-            sys.stdout.flush()
+            # sys.stdout.write("\r- Obtaining descriptors: %d%%" % count)
+            # sys.stdout.flush()
 
             descriptors = self.feature_getter.get_features(image)
             self.descriptor_list.append(descriptors)
