@@ -4,6 +4,7 @@ import json
 import pdb
 import sys
 from skimage import exposure
+from skimage.exposure import rescale_intensity
 import numpy as np
 class Preprocess:
 	def __init__(self, *args, **kwargs):
@@ -44,6 +45,10 @@ class Preprocess:
 		I = np.reshape(image,(1,-1))
 		print(I.shape)
 		return I
+
+	def intensity_rescale(self, image):
+		return rescale_intensity(image, out_range=(0, 255))
+
 
 
 

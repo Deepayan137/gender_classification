@@ -7,6 +7,7 @@ This repository contains the codes for SMAI course project for the year 2017
 python test.py configs/faces.json
 ```
 
+<<<<<<< Updated upstream
 
 ## To run the BoW code 
 
@@ -20,3 +21,5 @@ python test_bow.py configs/faces.json
  ```
 
  
+=======
+>>>>>>> Stashed changes
