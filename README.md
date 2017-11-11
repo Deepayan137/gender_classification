@@ -13,3 +13,10 @@ python test.py configs/faces.json
 ``` bash
 python test_bow.py configs/faces.json
 ```
+ ## To run logistic regression
+
+ ```bash
+ python test_lr.py configs/faces.json
+ ```
+
+ 
