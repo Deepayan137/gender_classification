@@ -1,0 +1,32 @@
+ 
+
+ KNN experimentation with 10 neighbors
+ 
+
+ Principle Components: 25 (adjusting while experimenting) 
+
+
+ Accuracy for KNN with NN: 1 and metric minkowski is 72.500000
+ Accuracy for KNN with NN: 2 and metric minkowski is 82.500000
+ Accuracy for KNN with NN: 3 and metric minkowski is 67.500000
+ Accuracy for KNN with NN: 4 and metric minkowski is 67.500000
+ Accuracy for KNN with NN: 5 and metric minkowski is 60.000000
+ Accuracy for KNN with NN: 6 and metric minkowski is 60.000000
+ Accuracy for KNN with NN: 7 and metric minkowski is 65.000000
+ Accuracy for KNN with NN: 8 and metric minkowski is 65.000000
+ Accuracy for KNN with NN: 9 and metric minkowski is 65.000000
+
+
+
+
+
+ Accuracy for KNN with NN: 1 and metric euclidean is 80.000000
+ Accuracy for KNN with NN: 2 and metric euclidean is 80.000000
+ Accuracy for KNN with NN: 3 and metric euclidean is 72.500000
+ Accuracy for KNN with NN: 4 and metric euclidean is 75.000000
+ Accuracy for KNN with NN: 5 and metric euclidean is 65.000000
+ Accuracy for KNN with NN: 6 and metric euclidean is 67.500000
+ Accuracy for KNN with NN: 7 and metric euclidean is 65.000000
+ Accuracy for KNN with NN: 8 and metric euclidean is 65.000000
+ Accuracy for KNN with NN: 9 and metric euclidean is 65.000000
+

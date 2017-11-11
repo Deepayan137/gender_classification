@@ -1,0 +1,32 @@
+Using LR for l1 regularization using regularization paramater as 0.01 (found using GridSearchCV) 
+
+
+             precision    recall  f1-score   support
+
+          0       0.87      1.00      0.93        20
+          1       1.00      0.85      0.92        20
+
+avg / total       0.93      0.93      0.92        40
+
+[[20  0]
+ [ 3 17]]
+('The accuracy %f with Logistic Regression having penalty %s', (0.92500000000000004, 'l1'))
+
+
+
+Using LR for l2 regularization using regularization parameter as 0.01 (found using GridSearchCV)
+
+             precision    recall  f1-score   support
+
+          0       0.83      0.95      0.88        20
+          1       0.94      0.80      0.86        20
+
+avg / total       0.88      0.88      0.87        40
+
+[[19  1]
+ [ 4 16]]
+('The accuracy %f with Logistic Regression having penalty %s', (0.875, 'l2'))
+
+
+
+Using principle components as 25 (tweaked and observed)
