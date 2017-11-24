@@ -7,31 +7,85 @@ from sklearn.preprocessing import StandardScaler
 from time import time
 import sys
 from sklearn.feature_extraction.image import extract_patches_2d
+from skimage.util import view_as_windows
 from math import floor
 from matplotlib import pyplot as plt
 
+
+class Preprocessor:
+    def __init__(self, size):
+        self.max_size = size
+
+    def give_X_y(self,a):
+        y=[]
+        X=[]
+        for label,images in a.items():
+            # print(label)
+            for img in images:
+                img = np.array(img)
+                y.append(label)
+                X.append(img)
+        y = np.array(y)
+        X = np.array(X)
+        return X,y
+
+    def resize(self, img):
+        img = np.array(img)
+        scale_x = self.max_size/img.shape[1]
+        scale_y = self.max_size/img.shape[0]
+        scale = min(scale_x,scale_y)
+        final = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        # print('initial:',img.shape,'final:',final.shape)
+        return final
+
+    def normalize(self, img):
+        img = cv2.equalizeHist(img)
+        img = img.astype('float64')
+        mean, std = np.mean(img), np.std(img)
+        img -= mean
+        # print(mean,std)
+        if std !=0 :
+            img /= std
+        # if std==0:
+        #     cv2.imshow('zero std',img)
+        #     cv2.waitKey(-1)
+
+        return img
+
 class FeatureGetter:
     def __init__(self, type):
+        self.count =0
         if type=='sift':
             self.feat_obj = cv2.xfeatures2d.SIFT_create()
 
-    def get_features(self,image):
+    def get_features(self,img):
         if type=='sift':
-            kp,desc = self.features_sift(image)
+            kp,desc = self.features_sift(img)
         else:
-            desc = self.features_patches(image)
+            desc = self.features_patches(img)
 
         return desc
 
-    def features_sift(self, image):
-        keypoints, descriptors = self.feat_obj.detectAndCompute(image.astype('uint8'), None)
+    def features_sift(self, img):
+        keypoints, descriptors = self.feat_obj.detectAndCompute(img.astype('uint8'), None)
         return [keypoints, descriptors]
 
-    def features_patches(self, image):
-        sz = 8
-        patches = extract_patches_2d(image,(sz,sz))
+    def features_patches(self, img):
+        sz = 10
+        # patches = extract_patches_2d(img,(sz,sz))
+        patches = view_as_windows(img,sz,sz)
         patches = patches.reshape(-1,sz**2)
+        self.relevent_patches(patches)
         return patches
+
+    def relevent_patches(self, patches):
+        # count = 0
+        for patch in patches:
+            sharpness = cv2.Laplacian(patch, cv2.CV_64F).var()
+            # print(sharpness, end='\t')
+            if sharpness>0.5:
+                self.count+=1
+
 
 
 class BOWHelpers:
@@ -76,7 +130,7 @@ class BOWHelpers:
         # print("Done clustering")
 
 
-    def generateVocabulary(self,images_count, descriptor_list):
+    def generateVocabulary(self,images_count, desc_list):
         
         # print("Generating Vocabulary Histogram...")
         
@@ -84,7 +138,7 @@ class BOWHelpers:
         desc_count_total = 0
 
         for i in range(images_count):
-            desc_count_image = len(descriptor_list[i])                  #no. of desc for i-th image
+            desc_count_image = len(desc_list[i])                  #no. of desc for i-th image
             # sys.stdout.write("\r- Building histograms: %d%%" %(floor((i+1)/images_count *100)))
             # sys.stdout.flush()
             # print(desc_count)
@@ -105,6 +159,8 @@ class BOWHelpers:
         # print("after standardize:",[row[0] for row in self.vocab_hist_train])
         # self.plotHist()
 
+    def getTFscores():
+        a=[0]
 
     def train(self, y_train):
         # print ("Training SVM")

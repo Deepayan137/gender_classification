@@ -1,27 +1,12 @@
-from aux.data_loader import images_and_truths, pair_to_unit
-from pre.preproc import Preprocess
 from aux.bow_utils import *
 from sklearn.model_selection import train_test_split
-import cv2
-import numpy as np
-import sys
-import json
-import os
 import pickle
-from math import floor
-from matplotlib import pyplot as plt
+from sklearn.externals import joblib
+import random
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.model_selection import KFold
 
 
-def normalize(image, size=100):
-    image = cv2.equalizeHist(image)
-    image = image.astype('float64')
-    image = cv2.resize(image, (size, size), interpolation=cv2.INTER_AREA)
-    mean, std = np.mean(image), np.std(image)
-    image -= mean
-    image /= std
-
-    return image
 
 
 class BOW:
@@ -30,13 +15,23 @@ class BOW:
         self.y_train = None
         self.X_val = None
         self.y_val = None
+        self.X_test = None
+        self.y_test = None
+        self.num_val = 0
+        self.curr_val= 0
+        self.accuracy=[]
+        self.precision=[]
+        self.recall=[]
+        self.f1=[]
         self.feature_getter = None
         self.feature_type = None
-        self.descriptor_list = []
+        self.desc_list = []
+        self.desc_count = []
         self.bow_helper = None
         self.vocab_size = None
         self.trainImageCount = 0
-        self.name_dict = {}
+        self.prev_f1 = 0
+        self.best_model = False
 
     def trainModel(self):
 
@@ -47,29 +42,38 @@ class BOW:
         image_count = 0
 
         for image in self.X_train:
-            count = floor((image_count+1)/self.trainImageCount *100)
+            # count = floor((image_count+1)/self.trainImageCount *100)
             # sys.stdout.write("\r- Obtaining descriptors: %d%%" % count)
             # sys.stdout.flush()
 
             descriptors = self.feature_getter.get_features(image)
-            self.descriptor_list.append(descriptors)
+            self.desc_list.append(descriptors)
+            self.desc_count.append(descriptors.shape[0])
             image_count +=1
 
+        print('\nTotal features:',str(self.feature_getter.count))
+
         with open('desc.pickle','wb') as write_desc:
-            pickle.dump(self.descriptor_list, write_desc)
+            pickle.dump(self.desc_list, write_desc)
             
-        print("\n")
+        # print("\n")
 
         self.bow_helper = BOWHelpers()
-        self.bow_helper.format_descriptors(self.descriptor_list, vocab_sz=self.vocab_size)
-        # print("image_shape:",image.shape,"descriptors count: ",len(self.descriptor_list))
+        self.bow_helper.format_descriptors(self.desc_list, vocab_sz=self.vocab_size)
+        # print("image_shape:",image.shape,"descriptors count: ",len(self.desc_list))
         
         self.bow_helper.cluster_descriptors()
 
-        self.bow_helper.generateVocabulary(images_count=self.trainImageCount, descriptor_list=self.descriptor_list)
+        self.bow_helper.generateVocabulary(images_count=self.trainImageCount, desc_list=self.desc_list)
         
         self.bow_helper.normalizeVocabulary()
         self.bow_helper.train(self.y_train)
+
+        self.validateModel()
+
+        if self.best_model:
+            joblib.dump((self.bow_helper.clf, self.y_train, self.bow_helper.vocab_scaler, self.bow_helper.kmeans_obj,
+            self.vocab_size, self.bow_helper.vocab_hist_train), "bow_best.model", compress=3)   
 
 
     def recognize(self,test_img):
@@ -91,12 +95,12 @@ class BOW:
         return y_pred
 
 
-    def testModel(self):
+    def validateModel(self):
         predictions = []
         image_count = 0
 
         y_pred = []
-        gender = lambda x: "female" if x=='1' else "male"
+        gender = lambda x: "female" if x=='f' else "male"
         for image in self.X_val:
             pred = self.recognize(image)
             # print('pred: ', gender(pred[0]), 'y_val', gender(self.y_val[image_count]))
@@ -109,15 +113,68 @@ class BOW:
 
         # print(predictions)
 
-        accuracy = accuracy_score(y_val, y_pred)
-        precision = precision_score(y_val, y_pred, average='weighted')
-        recall = recall_score(y_val, y_pred, average='weighted')
-        f1 = f1_score(y_val, y_pred, average='macro')
-        print("vocab_size:",self.vocab_size,"accuracy:",accuracy,
+        self.accuracy.append(accuracy_score(y_val, y_pred))
+        self.precision.append(precision_score(y_val, y_pred, average='weighted'))
+        self.recall.append(recall_score(y_val, y_pred, average='weighted'))
+        self.f1.append(f1_score(y_val, y_pred, average='macro'))
+        print("vocab_size:",self.vocab_size,"fold:",self.curr_val+1,'/',self.num_val,
+         "accuracy:",self.accuracy[self.curr_val],"precision:",self.precision[self.curr_val],
+         "recall:",self.recall[self.curr_val],"f1:",self.f1[self.curr_val])
+
+        if self.curr_val+1==self.num_val:
+            sv_metrics = open('bow_val_results.txt','a')
+            accuracy = sum(self.accuracy)/self.num_val
+            precision = sum(self.precision)/self.num_val
+            recall = sum(self.recall)/self.num_val
+            f1 = sum(self.f1)/self.num_val
+            sv_metrics.write("vocab_size:" + str(self.vocab_size) + "\taccuracy:" + str(accuracy) +
+                "\tprecision:" + str(precision) + "\trecall:" + str(recall) + "\tf1:" + str(f1)+"\n")
+            sv_metrics.close()
+
+            if f1 > self.prev_f1:
+                self.best_model = True
+            else:
+                self.best_model = False
+
+
+
+    def testModel(self):
+        predictions = []
+        image_count = 0
+
+        self.feature_getter = FeatureGetter(self.feature_type)
+        self.bow_helper = BOWHelpers()
+
+        clf, classes_names, scaler, kmeans_obj, vocab_size, vocab = joblib.load("bow_best.model")
+        self.bow_helper.clf = clf
+        self.bow_helper.vocab_scaler = scaler
+        self.bow_helper.kmeans_obj = kmeans_obj
+        self.bow_helper.vocab_hist_train = vocab
+        self.bow_helper.vocab_size = vocab_size
+
+        y_pred = []
+        gender = lambda x: "female" if x=='f' else "male"
+        for image in self.X_test:
+            pred = self.recognize(image)
+            # print('pred: ', gender(pred[0]), 'y_test', gender(self.y_test[image_count]))
+            predictions.append({
+                'image':self.X_test[image_count],
+                'y_pred':gender(pred[0]),
+                'y_test':gender(self.y_test[image_count])})
+            y_pred.append(pred)
+            image_count += 1
+
+        # print(predictions)
+
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred, average='weighted')
+        recall = recall_score(y_test, y_pred, average='weighted')
+        f1 = f1_score(y_test, y_pred, average='macro')
+        print("vocab_size:",self.bow_helper.vocab_size,"accuracy:",accuracy,
             "precision:",precision,"recall:",recall,"f1:",f1)
 
-        sv_metrics = open('bow_results.txt','a')
-        sv_metrics.write("vocab_size:" + str(self.vocab_size) + "\taccuracy:" + str(accuracy) +
+        sv_metrics = open('bow_test_results.txt','a')
+        sv_metrics.write("vocab_size:" + str(self.bow_helper.vocab_size) + "\taccuracy:" + str(accuracy) +
             "\tprecision:" + str(precision) + "\trecall:" + str(recall) + "\tf1:" + str(f1)+"\n")
         sv_metrics.close()
         # for each_pred in predictions:
@@ -127,31 +184,76 @@ class BOW:
 
 
 if __name__ == '__main__':
-    config = json.load(open(sys.argv[1]))
+    
+    pkl_file = open('FaceScrub_Data.pickle', 'rb')
+    a = pickle.load(pkl_file, encoding='latin1')
+    print(a.keys())
+    am = a['m']
+    af = a['f']
 
-    image_locs = list(map(lambda x: config["dir"] + x  , os.listdir(config["dir"])))
-    pairs = images_and_truths(image_locs)
-    images, truths = pair_to_unit(pairs)
-    
-    norm = np.array([normalize(image,size=100) for image in images])
-    
-    X_train, X_val, y_train, y_val = train_test_split(norm, truths, test_size=0.20, random_state=42)
-    
-    # print("Fitting the classifier to the training set")
+    # print(len(am))
+    # print(len(af))
+    # print(af[0][0])
+    # cv2.imshow('normal',a['m'][0])
+    # cv2.waitKey(0)
+
+    max_img_size = 100
+    preprocessor = Preprocessor(size=max_img_size)
+    X,y = preprocessor.give_X_y(a)
+    print('input:',X.shape)
+
+    X_rsz = np.array([preprocessor.resize(img) for img in X])
+
+    X_norm = np.array([preprocessor.normalize(img) for img in X_rsz])
+    # X_norm = X_rsz
+
+    X_t, X_test, y_t, y_test = train_test_split(X_norm, y, test_size=0.20, random_state=42)
+
+    num_fold = 5
 
     bow = BOW()
     bow.feature_type = 'patches'
+    bow.num_val = num_fold
+    print('Training the classifier')
 
-    bow.X_train = X_train
-    bow.y_train = y_train
+    # X_t = X_t[0:10]
+    # y_t = y_t[0:10] 
 
-    bow.X_val = X_val
-    bow.y_val = y_val
-    
-    # total_desc = (691920, 64)
-    for i in range(1000, 70000, 1000):
-        bow.vocab_size = i
-        # train the model
-        bow.trainModel()
-        # test model
-        bow.testModel()
+    ids = [i for i in range(y_t.shape[0])]
+    random.shuffle(ids)
+
+    X_t = X_t[ids]
+    y_t = y_t[ids]
+
+    kf = KFold(n_splits=num_fold)
+
+    for vocab_size in range(500, 10000, 500):
+        curr_val = 0
+        # for i in range(num_fold):
+            # X_train, X_val, y_train, y_val = train_test_split(X_t, y_t, test_size=0.20, random_state=42)
+
+        for id_train,id_val in kf.split(ids):
+            
+            print(id_train,id_val)
+            X_train = X_t[id_train]
+            y_train = y_t[id_train]            
+            X_val = X_t[id_val]            
+            y_val = y_t[id_val]
+            bow.X_train = X_train
+            bow.y_train = y_train
+
+            bow.X_val = X_val
+            bow.y_val = y_val
+            
+            bow.vocab_size = vocab_size
+            bow.curr_val = curr_val
+            
+            bow.trainModel()
+
+            curr_val += 1
+            
+            
+    bow.X_test = X_test
+    bow.y_test = y_test
+    print('Testing the classifier')
+    bow.testModel()
