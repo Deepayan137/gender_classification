@@ -17,16 +17,11 @@ class BOW:
         self.y_val = None
         self.X_test = None
         self.y_test = None
-        self.num_val = 0
-        self.curr_val= 0
-        self.accuracy=[]
-        self.precision=[]
-        self.recall=[]
-        self.f1=[]
+        self.desc_available = False
         self.feature_getter = None
         self.feature_type = None
         self.desc_list = []
-        self.desc_count = []
+        # self.desc_count = []
         self.bow_helper = None
         self.vocab_size = None
         self.trainImageCount = 0
@@ -39,23 +34,26 @@ class BOW:
         
         self.feature_getter = FeatureGetter(self.feature_type)
 
-        image_count = 0
+        if self.desc_available:
+            with open('desc_train.pickle','rb') as read_desc:
+                self.desc_list.append(descriptors) = pickle.load(read_desc)
+        else:
+            for image in self.X_train:
+                # count = floor((image_count+1)/self.trainImageCount *100)
+                # sys.stdout.write("\r- Obtaining descriptors: %d%%" % count)
+                # sys.stdout.flush()
 
-        for image in self.X_train:
-            # count = floor((image_count+1)/self.trainImageCount *100)
-            # sys.stdout.write("\r- Obtaining descriptors: %d%%" % count)
-            # sys.stdout.flush()
+                descriptors = self.feature_getter.get_features(image)
+                self.desc_list.append(descriptors)
+                # self.desc_count.append(descriptors.shape[0])
 
-            descriptors = self.feature_getter.get_features(image)
-            self.desc_list.append(descriptors)
-            self.desc_count.append(descriptors.shape[0])
-            image_count +=1
+            with open('desc_train.pickle','wb') as write_desc:
+                pickle.dump(self.desc_list, write_desc)
+            self.desc_available = True
 
-        print('\nTotal features:',str(self.feature_getter.count))
+            print('\nTotal Train features:',str(self.feature_getter.count))
 
-        with open('desc.pickle','wb') as write_desc:
-            pickle.dump(self.desc_list, write_desc)
-            
+                
         # print("\n")
 
         self.bow_helper = BOWHelpers()
@@ -67,6 +65,7 @@ class BOW:
         self.bow_helper.generateVocabulary(images_count=self.trainImageCount, desc_list=self.desc_list)
         
         self.bow_helper.normalizeVocabulary()
+        print(self.bow_helper.vocab_hist_train.shape)
         self.bow_helper.train(self.y_train)
 
         self.validateModel()
@@ -113,28 +112,24 @@ class BOW:
 
         # print(predictions)
 
-        self.accuracy.append(accuracy_score(y_val, y_pred))
-        self.precision.append(precision_score(y_val, y_pred, average='weighted'))
-        self.recall.append(recall_score(y_val, y_pred, average='weighted'))
-        self.f1.append(f1_score(y_val, y_pred, average='macro'))
-        print("vocab_size:",self.vocab_size,"fold:",self.curr_val+1,'/',self.num_val,
-         "accuracy:",self.accuracy[self.curr_val],"precision:",self.precision[self.curr_val],
-         "recall:",self.recall[self.curr_val],"f1:",self.f1[self.curr_val])
+        accuracy = accuracy_score(y_val, y_pred)
+        precision = precision_score(y_val, y_pred, average='weighted')
+        recall = recall_score(y_val, y_pred, average='weighted')
+        f1 = f1_score(y_val, y_pred, average='macro')
+        print("vocab_size:",self.vocab_size,
+         "accuracy:",accuracy,"precision:",precision,
+         "recall:",recall,"f1:",f1)
 
-        if self.curr_val+1==self.num_val:
-            sv_metrics = open('bow_val_results.txt','a')
-            accuracy = sum(self.accuracy)/self.num_val
-            precision = sum(self.precision)/self.num_val
-            recall = sum(self.recall)/self.num_val
-            f1 = sum(self.f1)/self.num_val
-            sv_metrics.write("vocab_size:" + str(self.vocab_size) + "\taccuracy:" + str(accuracy) +
-                "\tprecision:" + str(precision) + "\trecall:" + str(recall) + "\tf1:" + str(f1)+"\n")
-            sv_metrics.close()
 
-            if f1 > self.prev_f1:
-                self.best_model = True
-            else:
-                self.best_model = False
+        sv_metrics = open('bow_val_results.txt','a')
+        sv_metrics.write("vocab_size:" + str(self.vocab_size) + "\taccuracy:" + str(accuracy) +
+            "\tprecision:" + str(precision) + "\trecall:" + str(recall) + "\tf1:" + str(f1)+"\n")
+        sv_metrics.close()
+
+        if f1 > self.prev_f1:
+            self.best_model = True
+        else:
+            self.best_model = False
 
 
 
@@ -213,44 +208,23 @@ if __name__ == '__main__':
 
     bow = BOW()
     bow.feature_type = 'patches'
-    bow.num_val = num_fold
+
     print('Training the classifier')
-
-    # X_t = X_t[0:10]
-    # y_t = y_t[0:10] 
-
-    ids = [i for i in range(y_t.shape[0])]
-    random.shuffle(ids)
-
-    X_t = X_t[ids]
-    y_t = y_t[ids]
-
-    kf = KFold(n_splits=num_fold)
 
     for vocab_size in range(500, 10000, 500):
         curr_val = 0
-        # for i in range(num_fold):
-            # X_train, X_val, y_train, y_val = train_test_split(X_t, y_t, test_size=0.20, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X_t, y_t, test_size=0.20, random_state=42)
 
-        for id_train,id_val in kf.split(ids):
-            
-            print(id_train,id_val)
-            X_train = X_t[id_train]
-            y_train = y_t[id_train]            
-            X_val = X_t[id_val]            
-            y_val = y_t[id_val]
-            bow.X_train = X_train
-            bow.y_train = y_train
+       
+        bow.X_train = X_train
+        bow.y_train = y_train
 
-            bow.X_val = X_val
-            bow.y_val = y_val
-            
-            bow.vocab_size = vocab_size
-            bow.curr_val = curr_val
-            
-            bow.trainModel()
-
-            curr_val += 1
+        bow.X_val = X_val
+        bow.y_val = y_val
+        
+        bow.vocab_size = vocab_size
+        
+        bow.trainModel()
             
             
     bow.X_test = X_test

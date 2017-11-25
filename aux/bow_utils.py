@@ -1,14 +1,11 @@
 import cv2
 import numpy as np 
-from glob import glob
+from math import log10
 from sklearn.cluster import KMeans, MiniBatchKMeans
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
-from time import time
-import sys
-from sklearn.feature_extraction.image import extract_patches_2d
+from sklearn.preprocessing import normalize
 from skimage.util import view_as_windows
-from math import floor
 from matplotlib import pyplot as plt
 
 
@@ -96,6 +93,8 @@ class BOWHelpers:
         self.descriptor_all = None
         self.vocab_hist_train = None
         self.vocab_scaler = None
+        self.tf_vocab = None
+        self.tfidf_scores = None
         self.clf = SVC()   
 
 
@@ -159,8 +158,23 @@ class BOWHelpers:
         # print("after standardize:",[row[0] for row in self.vocab_hist_train])
         # self.plotHist()
 
-    def getTFscores():
-        a=[0]
+    def getTFvocab(self):
+        self.tf_vocab = normalize(self.vocab_hist_train,axis=0,norm='l1')
+
+
+    def predict_tfidf(self, vocab_hist_retrieved,N):
+        self.tfidf_scores = [0]*N
+        sz = np.count_nonzero(self.tf_vocab,axis=1)     #num of images that each word is present in  
+        for word_id_retrieved in range(vocab_hist_retrieved.shape[0]):
+            word_count = vocab_hist_retrieved[word_id_retrieved]
+            if word_count==0:
+                continue
+            idf = log10(N/sz[word_id_retrieved])
+            for img_id in range(N):
+                self.tfidf_scores[img_id] += self.tf_vocab[img_id,word_id_retrieved] * idf
+
+
+
 
     def train(self, y_train):
         # print ("Training SVM")
