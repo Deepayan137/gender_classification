@@ -36,7 +36,7 @@ class BOW:
 
         if self.desc_available:
             with open('desc_train.pickle','rb') as read_desc:
-                self.desc_list.append(descriptors) = pickle.load(read_desc)
+                self.desc_list = pickle.load(read_desc)
         else:
             for image in self.X_train:
                 # count = floor((image_count+1)/self.trainImageCount *100)
