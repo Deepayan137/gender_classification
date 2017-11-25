@@ -90,6 +90,8 @@ class BOW:
 
         # predict the class of the image
         y_pred = self.bow_helper.clf.predict(vocab_hist)
+        # y_pred = self.bow_helper.predict_tfidf(vocab_hist,self.trainImageCount,self.y_train)
+
         # print("Image belongs to class :",y_pred) 
         return y_pred
 
@@ -103,6 +105,7 @@ class BOW:
         for image in self.X_val:
             pred = self.recognize(image)
             # print('pred: ', gender(pred[0]), 'y_val', gender(self.y_val[image_count]))
+            # print('pred: ', pred[0], 'y_val', self.y_val[image_count])
             predictions.append({
                 'image':self.X_val[image_count],
                 'y_pred':gender(pred[0]),
@@ -180,7 +183,7 @@ class BOW:
 
 if __name__ == '__main__':
     
-    pkl_file = open('FaceScrub_Data.pickle', 'rb')
+    pkl_file = open('FaceScrub_Data_raw.pickle', 'rb')
     a = pickle.load(pkl_file, encoding='latin1')
     print(a.keys())
     am = a['m']

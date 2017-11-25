@@ -145,7 +145,8 @@ class BOWHelpers:
                 word = self.kmeans_ret[desc_count_total + desc_id]      #word for a desc of i-th image
                 self.vocab_hist_train[i][word] += 1                           #incrementing the hist entry related to word
             desc_count_total += desc_count_image
-
+        
+        self.getTFvocab()
         # print ("\nDone Generating Vocabulary Histogram")
 
 
@@ -157,21 +158,29 @@ class BOWHelpers:
         self.vocab_hist_train = self.vocab_scaler.transform(self.vocab_hist_train)
         # print("after standardize:",[row[0] for row in self.vocab_hist_train])
         # self.plotHist()
+        # self.getTFvocab()
 
     def getTFvocab(self):
         self.tf_vocab = normalize(self.vocab_hist_train,axis=0,norm='l1')
+        print(self.tf_vocab.shape)
 
 
-    def predict_tfidf(self, vocab_hist_retrieved,N):
+    def predict_tfidf(self, vocab_hist_retrieved, N, y_train):
         self.tfidf_scores = [0]*N
         sz = np.count_nonzero(self.tf_vocab,axis=1)     #num of images that each word is present in  
-        for word_id_retrieved in range(vocab_hist_retrieved.shape[0]):
-            word_count = vocab_hist_retrieved[word_id_retrieved]
+        # print(vocab_hist_retrieved.shape)
+        for word_id_retrieved in range(vocab_hist_retrieved.shape[1]):
+            word_count = vocab_hist_retrieved[0,word_id_retrieved]
+            # print(word_id_retrieved, word_count)
             if word_count==0:
                 continue
             idf = log10(N/sz[word_id_retrieved])
             for img_id in range(N):
                 self.tfidf_scores[img_id] += self.tf_vocab[img_id,word_id_retrieved] * idf
+
+        class_id = np.argmax(self.tfidf_scores)
+        y_pred = y_train[class_id]
+        return y_pred
 
 
 
