@@ -214,7 +214,7 @@ if __name__ == '__main__':
 
     print('Training the classifier')
 
-    for vocab_size in range(500, 10000, 500):
+    for vocab_size in range(500, 20000, 500):
         curr_val = 0
         X_train, X_val, y_train, y_val = train_test_split(X_t, y_t, test_size=0.20, random_state=42)
 
