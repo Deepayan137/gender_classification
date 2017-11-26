@@ -14,7 +14,7 @@ class Preprocess:
 			self.haar_path = kwargs['haar_path']
 	def detect_faces(self, image):
 		minisize = (image.shape[1],image.shape[0])
-                miniframe = cv2.resize(image, minisize)
+		miniframe = cv2.resize(image, minisize)
 		#min_size = (30, 30)
 		face_cascade = cv2.CascadeClassifier(self.haar_path)
 		faces = face_cascade.detectMultiScale(miniframe, 1.3, 5)
@@ -41,9 +41,29 @@ class Preprocess:
 		#image -= mean
 		#image /= std
 		cv2.normalize(image, image, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
-		print(image.shape)
+		# print(image.shape)
 		I = np.reshape(image,(1,-1))
-		print(I.shape)
+		# print(I.shape)
+		return I
+
+	def normalize_frame(self, image):
+		#image = image/255
+
+		# image = self.detect_faces(image)
+
+		image = cv2.equalizeHist(image)
+		image = image.astype('float64')
+		try:
+			image = cv2.resize(image, (48, 48))
+		except Exceptions as e:
+			pad_image(image, (48-image.shape[0], 48-image.shape[1]))
+		#mean, std = np.mean(image), np.std(image)
+		#image -= mean
+		#image /= std
+		cv2.normalize(image, image, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_64F)
+		# print(image.shape)
+		I = np.reshape(image,(1,-1))
+		# print(I.shape)
 		return I
 
 	def intensity_rescale(self, image):

@@ -19,7 +19,7 @@ The below image shows the genarated eigen faces for the Training dataset
 ![Results](Images/predictions.png)
 
 ![Acuracy, F1 vs. n_comp](Images/stats.png)
-
+	
 ## To run the BoW code 
 
 ``` bash

@@ -1,4 +1,7 @@
 {
     "haar_path": "/home/deepayan/opencv/data/haarcascades/haarcascade_frontalface_default.xml",
     "dir": "/home/deepayan/git/gender_classification/faces_dir/"
+    
+
+
 }
