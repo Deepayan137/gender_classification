@@ -1,6 +1,13 @@
 # gender_classification
 This repository contains the codes for SMAI course project for the year 2017
 
+## packages and installations
+In order to run this code you must have anacoda installed in your system.
+After you are done installing conda just type in the below ommand in the terminal
+```bash
+conda create --name newenv --file requirements.txt
+```
+
 ## To run the code 
 
 ```bash
