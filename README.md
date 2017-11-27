@@ -3,10 +3,10 @@ This repository contains the codes for SMAI course project for the year 2017
 
 ## To run the code 
 
-``` bash
-python test.py -c configs/faces.json -o results/ -d old 
-
+```bash
+python real_time_classify.py -c configs/faces.json -o results/ -d facescrup 
 ```
+
 ## Parameters to be set
 1. -c path of configuration file
 2. -o path of output directory
@@ -28,11 +28,7 @@ The below image shows the genarated eigen faces for the Training dataset
 
 # Real time gender classification
 
-## To run the gender classification code on real time data
 
-```bash
-python videocap.py -c configs/faces.json -o results/ -d facescrup 
-```
 ![Results](Images/AS.png)
 ## To run the BoW code 
 
